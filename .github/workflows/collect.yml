@@ -1,0 +1,80 @@
+name: Collect job listings
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 */4 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: job-watcher
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    if: github.event_name == 'workflow_dispatch' || vars.JOB_WATCHER_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: python -m pip install -r requirements.txt
+
+      - name: Restore or initialize state
+        id: restore
+        shell: bash
+        run: |
+          set -euo pipefail
+          state_dir="$RUNNER_TEMP/job-watcher-state"
+          mkdir -p "$state_dir"
+          if git ls-remote --exit-code --heads origin state >/dev/null; then
+            git fetch origin state:refs/remotes/origin/state
+            git show origin/state:seen.json > "$state_dir/seen.json"
+          else
+            printf '{"version": 1, "processed": []}\n' > "$state_dir/seen.json"
+          fi
+
+      - name: Collect and evaluate
+        id: collect
+        continue-on-error: true
+        env:
+          JOB_WATCHER_STATE_PATH: ${{ runner.temp }}/job-watcher-state/seen.json
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python main.py
+
+      - name: Persist state
+        if: always() && steps.restore.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          state_dir="$RUNNER_TEMP/job-watcher-state"
+          worktree="$RUNNER_TEMP/job-watcher-state-worktree"
+          if git show-ref --verify --quiet refs/remotes/origin/state; then
+            git worktree add -B job-watcher-state-write "$worktree" refs/remotes/origin/state
+          else
+            git worktree add --detach "$worktree" HEAD
+            git -C "$worktree" checkout --orphan state
+            git -C "$worktree" rm -rf --quiet .
+          fi
+          cp "$state_dir/seen.json" "$worktree/seen.json"
+          git -C "$worktree" add seen.json
+          if ! git -C "$worktree" diff --cached --quiet; then
+            git -C "$worktree" config user.name "github-actions[bot]"
+            git -C "$worktree" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git -C "$worktree" commit -m "Update job watcher state"
+            git -C "$worktree" push origin HEAD:state
+          fi
+
+      - name: Report collection failure
+        if: always() && steps.collect.outcome == 'failure'
+        run: exit 1

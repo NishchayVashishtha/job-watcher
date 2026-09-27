@@ -1,6 +1,6 @@
 # Personal Job Watcher
 
-A small Python watcher for public LinkedIn and Internshala listings. It filters and scores jobs against one editable profile, then sends selected jobs to Telegram. An optional Wellfound adapter is included but disabled by default because a public HTTP request returned 403 during development. Applications stay manual.
+A small Python watcher for public LinkedIn and Internshala listings. It filters and scores jobs against one editable profile, then sends selected jobs to Telegram. An optional Wellfound adapter is included but disabled by default. A local public HTTP request returned 403; a hosted manual probe retrieved 30 basic links, but company and other details were sparse. Applications stay manual.
 
 The full design and tradeoffs are in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 

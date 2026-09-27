@@ -39,7 +39,7 @@ Create a GitHub repository for this directory and push the code to its default b
 
 The workflow creates a `state` branch on its first run. Later runs read `seen.json` from that branch and write completed IDs back to it. The workflow grants itself `contents: write`; repository settings must allow its token to write. Runs are serialized with GitHub Actions concurrency. Do not delete or rename `state` casually, because that would make old listings look new.
 
-Run the workflow manually and inspect its Actions summary before relying on the schedule. Public job sites may block GitHub-hosted runners; a local successful request cannot prove remote collection will work. The enabled LinkedIn and Internshala collectors report failures independently. Enable Wellfound in `ENABLED_SOURCES` only after confirming public requests and parsing work from the runner.
+Run the workflow manually and inspect its Actions summary before relying on the schedule. Public job sites may block GitHub-hosted runners; a local successful request cannot prove remote collection will work. The enabled LinkedIn and Internshala collectors report failures independently. Use the manual workflow’s `sources` input to probe `wellfound` alone. Enable Wellfound in the default `JOB_WATCHER_SOURCES` setting only after confirming public requests and parsing work from the runner.
 
 Scheduled GitHub Actions may run late or be dropped. The searches overlap previous runs, and stable IDs suppress normal repeats. In an inactive public repository, GitHub can disable scheduled workflows after 60 days.
 

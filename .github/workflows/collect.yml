@@ -2,6 +2,11 @@ name: Collect job listings
 
 on:
   workflow_dispatch:
+    inputs:
+      sources:
+        description: "Comma-separated sources for a manual probe"
+        required: false
+        default: "linkedin,internshala"
   schedule:
     - cron: "17 */4 * * *"
 
@@ -48,6 +53,7 @@ jobs:
         continue-on-error: true
         env:
           JOB_WATCHER_STATE_PATH: ${{ runner.temp }}/job-watcher-state/seen.json
+          JOB_WATCHER_SOURCES: ${{ inputs.sources }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python main.py

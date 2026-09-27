@@ -41,7 +41,10 @@ INTERNSHALA_URLS = (
 )
 WELLFOUND_URLS = ("https://wellfound.com/role/l/software-engineer/india",)
 
-ENABLED_SOURCES = ("linkedin", "internshala")
+ENABLED_SOURCES = tuple(
+    name.strip() for name in (getenv("JOB_WATCHER_SOURCES") or "linkedin,internshala").split(",")
+    if name.strip()
+)
 # Wellfound is implemented as an optional public-page adapter. It returned HTTP 403
 # during local development; enable it only after a remote runner probe succeeds.
 

@@ -1,19 +1,110 @@
-"""Optional parser for publicly accessible Wellfound listing pages."""
+"""Optional collector for publicly accessible Wellfound search pages."""
 
 from datetime import datetime, timezone
 import json
 import logging
 import re
+import shutil
+import subprocess
+import tempfile
 from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
 
 from config import WELLFOUND_MAX_CARDS_PER_URL, WELLFOUND_URLS
 from models import Job, canonical_url, job_id, parse_posted_at
-from sources import get_public_page
 
 LOGGER = logging.getLogger(__name__)
 JOB_HREF = re.compile(r"^/jobs/(\d+)-")
+BROWSER_TIMEOUT_SECONDS = 60
+
+
+def get_browser_page(url: str) -> str:
+    """Fetch one public page in an isolated, disposable headless Chrome profile."""
+    browser = shutil.which("google-chrome") or shutil.which("chromium") or shutil.which("chromium-browser")
+    if not browser:
+        raise RuntimeError("Wellfound requires Google Chrome or Chromium on PATH")
+    with tempfile.TemporaryDirectory(prefix="job-watcher-wellfound-") as profile:
+        try:
+            result = subprocess.run(
+                [browser, "--headless=new", "--disable-gpu",
+                 "--disable-dev-shm-usage", "--no-first-run",
+                 f"--user-data-dir={profile}", "--dump-dom", url],
+                capture_output=True, text=True, timeout=BROWSER_TIMEOUT_SECONDS,
+                check=False,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise RuntimeError("Wellfound browser fetch timed out") from exc
+    if result.returncode != 0:
+        raise RuntimeError(f"Wellfound browser exited with status {result.returncode}")
+    if not result.stdout.strip():
+        raise ValueError("Wellfound browser returned an empty page")
+    return result.stdout
+
+
+def _apollo_jobs(soup: BeautifulSoup) -> list[Job]:
+    script = soup.select_one("script#__NEXT_DATA__")
+    if script is None:
+        return []
+    try:
+        graph = json.loads(script.string or script.get_text())["props"]["pageProps"]["apolloState"]["data"]
+    except (TypeError, ValueError, KeyError):
+        return []
+    if not isinstance(graph, dict):
+        return []
+    jobs = []
+    seen = set()
+    for key, company in graph.items():
+        if not key.startswith("StartupResult:") or not isinstance(company, dict):
+            continue
+        for reference in company.get("highlightedJobListings") or []:
+            if not isinstance(reference, dict):
+                continue
+            listing = graph.get(reference.get("__ref"))
+            if not isinstance(listing, dict):
+                continue
+            source_id = str(listing.get("id") or "").strip()
+            title = listing.get("title")
+            slug = listing.get("slug")
+            if not source_id.isdigit() or not isinstance(title, str) or not title.strip() or not isinstance(slug, str) or not slug:
+                continue
+            if source_id in seen:
+                continue
+            seen.add(source_id)
+            url = canonical_url(f"https://wellfound.com/jobs/{source_id}-{slug}")
+            remote_config = listing.get("remoteConfig") or {}
+            remote_kind = remote_config.get("kind") if isinstance(remote_config, dict) else None
+            workplace = {"REMOTE": "remote", "ONSITE": "onsite", "ONSITE_OR_REMOTE": "hybrid"}.get(remote_kind)
+            locations = listing.get("locationNames") or []
+            if not isinstance(locations, list):
+                locations = []
+            location = ", ".join(place for place in locations if isinstance(place, str)) or None
+            if workplace == "remote":
+                remote_places = listing.get("acceptedRemoteLocationNames") or []
+                if isinstance(remote_places, list) and remote_places:
+                    location = ", ".join(place for place in remote_places if isinstance(place, str)) or location
+                location = f"Remote • {location}" if location else "Remote"
+            elif workplace == "hybrid" and location:
+                location = f"Onsite or remote • {location}"
+            posted = listing.get("liveStartAt")
+            try:
+                posted_at = datetime.fromtimestamp(posted, timezone.utc) if isinstance(posted, (int, float)) else None
+            except (OverflowError, OSError, ValueError):
+                posted_at = None
+            years = listing.get("yearsExperienceMin")
+            jobs.append(Job(
+                id=job_id("wellfound", url, source_id), source="wellfound",
+                title=title.strip(), url=url,
+                company=(company.get("name") or "").strip() or None,
+                location=location,
+                description=listing.get("description") or None,
+                compensation=listing.get("compensation") or None,
+                posted_at=posted_at,
+                employment_type=_employment(listing.get("jobType")),
+                workplace_type=workplace,
+                experience_min_years=years if isinstance(years, int) and not isinstance(years, bool) else None,
+            ))
+    return jobs
 
 
 def _structured_jobs(soup: BeautifulSoup, page_url: str) -> list[Job]:
@@ -65,7 +156,10 @@ def _employment(value: object) -> str | None:
 def parse_cards(html: str, page_url: str, *, now: datetime | None = None) -> list[Job]:
     now = now or datetime.now(timezone.utc)
     soup = BeautifulSoup(html, "html.parser")
-    jobs = _structured_jobs(soup, page_url)
+    jobs = _apollo_jobs(soup)
+    if not jobs:
+        LOGGER.warning("Wellfound embedded job data unavailable; using fallback parser")
+        jobs = _structured_jobs(soup, page_url)
     if jobs:
         return jobs[:WELLFOUND_MAX_CARDS_PER_URL]
     # The public search page has, when accessible, job links grouped with a
@@ -116,7 +210,11 @@ def fetch_wellfound() -> list[Job]:
     failures = []
     for url in WELLFOUND_URLS:
         try:
-            jobs.extend(parse_cards(get_public_page(url), url))
+            found = parse_cards(get_browser_page(url), url)
+            LOGGER.info("Wellfound %s: %d jobs, %d with description, %d with company",
+                        url, len(found), sum(bool(job.description) for job in found),
+                        sum(bool(job.company) for job in found))
+            jobs.extend(found)
         except Exception as exc:
             failures.append(f"{url}: {type(exc).__name__}: {exc}")
     if not jobs and failures:

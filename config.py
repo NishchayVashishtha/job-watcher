@@ -45,13 +45,13 @@ ENABLED_SOURCES = tuple(
     name.strip() for name in (getenv("JOB_WATCHER_SOURCES") or "linkedin,internshala").split(",")
     if name.strip()
 )
-# Wellfound is implemented as an optional public-page adapter. It returned HTTP 403
-# during local development; enable it only after a remote runner probe succeeds.
+# Wellfound uses a fresh headless browser to read public listing data. Keep it
+# optional while checking reliability across scheduled GitHub Actions runs.
 
 ALERT_THRESHOLD = int(getenv("JOB_WATCHER_ALERT_THRESHOLD", "60"))
 MAX_ALERTS_PER_RUN = int(getenv("JOB_WATCHER_MAX_ALERTS", "10"))
 MAX_POSTING_AGE_DAYS = int(getenv("JOB_WATCHER_MAX_AGE_DAYS", "7"))
 LINKEDIN_RESULTS_PER_SEARCH = 20
 INTERNSHALA_MAX_CARDS_PER_URL = 50
-WELLFOUND_MAX_CARDS_PER_URL = 30
+WELLFOUND_MAX_CARDS_PER_URL = 50
 HTTP_TIMEOUT = (5, 20)

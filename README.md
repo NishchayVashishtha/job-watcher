@@ -1,6 +1,6 @@
 # Personal Job Watcher
 
-A small Python watcher for public LinkedIn and Internshala listings. It filters and scores jobs against one editable profile, then sends selected jobs to Telegram. An optional Wellfound adapter is included but disabled by default. A local public HTTP request returned 403; a hosted manual probe retrieved 30 basic links, but company and other details were sparse. Applications stay manual.
+A small Python watcher for public LinkedIn and Internshala listings. It filters and scores jobs against one editable profile, then sends selected jobs to Telegram. An optional Wellfound collector uses headless Chrome to read public search pages and is disabled by default while its reliability is evaluated. Applications stay manual.
 
 The full design and tradeoffs are in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
@@ -33,13 +33,15 @@ export TELEGRAM_CHAT_ID="..."
 
 The bot must be able to message the selected chat. Keep the token out of commits and shell history. The token and chat ID are GitHub Actions secrets for remote execution.
 
+For a local Wellfound dry run, install Google Chrome or Chromium and make it available on `PATH`, then run `JOB_WATCHER_SOURCES=wellfound .venv/bin/python main.py --dry-run`. The collector uses a fresh temporary browser profile and does not require a Wellfound account. It reads the public page’s embedded job data, including descriptions, and falls back to visible listings when that data is unavailable. Plain HTTP requests returned 403 in local and GitHub runner tests.
+
 ## GitHub Actions
 
 Create a GitHub repository for this directory and push the code to its default branch. Add repository secrets named `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`. The workflow in `.github/workflows/collect.yml` supports a manual run. It runs in dry-run mode while the example profile flag remains set. The four-hour schedule (minute 17 UTC) is gated by the repository variable `JOB_WATCHER_ENABLED=true`, so scheduled collection stays inactive until you configure the real profile and Telegram secrets.
 
 The workflow creates a `state` branch on its first run. Later runs read `seen.json` from that branch and write completed IDs back to it. The workflow grants itself `contents: write`; repository settings must allow its token to write. Runs are serialized with GitHub Actions concurrency. Do not delete or rename `state` casually, because that would make old listings look new.
 
-Run the workflow manually and inspect its Actions summary before relying on the schedule. Public job sites may block GitHub-hosted runners; a local successful request cannot prove remote collection will work. The enabled LinkedIn and Internshala collectors report failures independently. Use the manual workflow’s `sources` input to probe `wellfound` alone. Enable Wellfound in the default `JOB_WATCHER_SOURCES` setting only after confirming public requests and parsing work from the runner.
+Run the workflow manually and inspect its Actions summary before relying on the schedule. Public job sites may block GitHub-hosted runners; a local successful request cannot prove remote collection will work. The enabled sources report failures independently. Use the manual workflow’s `sources` input to probe `wellfound` alone. The current GitHub runner image includes Chrome, but the collector will fail with a clear error if it is unavailable. Wellfound remains outside the default `JOB_WATCHER_SOURCES` setting while we check repeated runner results over time.
 
 Scheduled GitHub Actions may run late or be dropped. The searches overlap previous runs, and stable IDs suppress normal repeats. In an inactive public repository, GitHub can disable scheduled workflows after 60 days.
 

@@ -1,0 +1,60 @@
+{
+  "props": {
+    "pageProps": {
+      "apolloState": {
+        "data": {
+          "StartupResult:10278481": {
+            "id": "10278481",
+            "name": "Avoca AI",
+            "highlightedJobListings": [
+              {
+                "__ref": "JobListingSearchResult:4718964"
+              },
+              {
+                "__ref": "JobListingSearchResult:4607436"
+              }
+            ]
+          },
+          "JobListingSearchResult:4718964": {
+            "id": "4718964",
+            "title": "Software Engineer (Product) ",
+            "slug": "software-engineer-product",
+            "locationNames": [
+              "Bengaluru"
+            ],
+            "liveStartAt": 1789516781,
+            "jobType": "full-time",
+            "remote": false,
+            "remoteConfig": {
+              "kind": "ONSITE"
+            },
+            "acceptedRemoteLocationNames": [],
+            "yearsExperienceMin": null,
+            "compensation": "",
+            "description": "Build Python services with the product team."
+          },
+          "JobListingSearchResult:4607436": {
+            "id": "4607436",
+            "title": "Deployment Engineer",
+            "slug": "deployment-engineer",
+            "locationNames": [
+              "Bengaluru"
+            ],
+            "liveStartAt": 1787184049,
+            "jobType": "full-time",
+            "remote": true,
+            "remoteConfig": {
+              "kind": "REMOTE"
+            },
+            "acceptedRemoteLocationNames": [
+              "India"
+            ],
+            "yearsExperienceMin": null,
+            "compensation": "",
+            "description": "Deploy software for customers in India."
+          }
+        }
+      }
+    }
+  }
+}

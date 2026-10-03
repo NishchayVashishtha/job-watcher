@@ -6,7 +6,7 @@ on:
       sources:
         description: "Comma-separated sources for a manual probe"
         required: false
-        default: "linkedin,internshala"
+        default: "linkedin,internshala,wellfound"
   schedule:
     - cron: "17 */4 * * *"
 

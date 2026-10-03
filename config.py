@@ -69,7 +69,7 @@ WELLFOUND_URLS = (
 )
 
 ENABLED_SOURCES = tuple(
-    name.strip() for name in (getenv("JOB_WATCHER_SOURCES") or "linkedin,internshala").split(",")
+    name.strip() for name in (getenv("JOB_WATCHER_SOURCES") or "linkedin,internshala,wellfound").split(",")
     if name.strip()
 )
 

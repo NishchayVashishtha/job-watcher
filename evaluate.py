@@ -20,6 +20,17 @@ TECH_ALIASES = {
     "python": (r"\bpython\b",),
     "docker": (r"\bdocker\b",),
     "linux": (r"\blinux\b",),
+    "flask": (r"\bflask\b",),
+    "react": (r"\breact(?:\.js|js)?\b",),
+    "typescript": (r"\btypescript\b",),
+    "javascript": (r"\bjavascript\b",),
+    "pytorch": (r"\bpytorch\b",),
+    "langchain": (r"\blangchain\b",),
+    "rag": (r"\brag\b", r"\bretrieval[- ]augmented\b"),
+    "solidity": (r"\bsolidity\b",),
+    "web3": (r"\bweb3(?:\.js)?\b", r"\bblockchain\b", r"\bsolana\b", r"\balgorand\b"),
+    "java": (r"\bjava\b",),
+    "pgvector": (r"\bpgvector\b",),
 }
 
 

@@ -5,6 +5,8 @@ import time
 
 import requests
 
+import config  # Ensures .env is loaded if present
+
 from models import Evaluation, Job
 
 

@@ -54,3 +54,24 @@ def test_remote_country_kept_when_only_city_preference_is_known():
     profile = Profile(allowed_locations=("Pune",))
     result = evaluate(job("Backend Intern", location="Remote only • India", workplace_type="remote"), profile, now=NOW)
     assert result.score is not None
+
+
+def test_ai_engineer_with_rag_and_fastapi_qualifies():
+    res = evaluate(
+        job("AI Engineer Intern", description="Building RAG pipelines using FastAPI and LangChain", location="Gurugram, India"),
+        now=NOW
+    )
+    assert res.score is not None
+    assert res.score >= 80
+    assert "preferred role" in res.reasons
+    assert "early-career role" in res.reasons
+
+
+def test_blockchain_web3_intern_qualifies():
+    res = evaluate(
+        job("Web3 Developer Intern", description="Smart contract development using Solidity and React", location="Remote"),
+        now=NOW
+    )
+    assert res.score is not None
+    assert res.score >= 75
+

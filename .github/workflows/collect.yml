@@ -6,9 +6,10 @@ on:
       sources:
         description: "Comma-separated sources for a manual probe"
         required: false
-        default: "linkedin,internshala,wellfound"
+        default: "hackernews,web3,github_internships,ats_api,linkedin,internshala,wellfound"
   schedule:
-    - cron: "17 */4 * * *"
+    # Runs daily at 10:00 PM IST (16:30 UTC)
+    - cron: "30 16 * * *"
 
 permissions:
   contents: write
@@ -56,6 +57,9 @@ jobs:
           JOB_WATCHER_SOURCES: ${{ inputs.sources }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_TOPIC_JOBS: ${{ secrets.TELEGRAM_TOPIC_JOBS || vars.TELEGRAM_TOPIC_JOBS }}
+          TELEGRAM_TOPIC_GIGS: ${{ secrets.TELEGRAM_TOPIC_GIGS || vars.TELEGRAM_TOPIC_GIGS }}
+          TELEGRAM_TOPIC_HACKS: ${{ secrets.TELEGRAM_TOPIC_HACKS || vars.TELEGRAM_TOPIC_HACKS }}
         run: python main.py
 
       - name: Persist state

@@ -75,3 +75,61 @@ def test_blockchain_web3_intern_qualifies():
     assert res.score is not None
     assert res.score >= 75
 
+
+def test_stipend_parser():
+    from evaluate import parse_stipend_amount
+    assert parse_stipend_amount("25k/month") == 25000
+    assert parse_stipend_amount("₹20,000") == 20000
+    assert parse_stipend_amount("20000") == 20000
+    assert parse_stipend_amount("₹ 25,000 - 30,000 / month") == 25000
+    assert parse_stipend_amount("15k pm") == 15000
+    assert parse_stipend_amount("Unpaid") == 0
+    assert parse_stipend_amount("No stipend") == 0
+    assert parse_stipend_amount("$500/month") == 500 * 83
+    assert parse_stipend_amount("3.6 LPA") == 30000
+
+
+def test_geo_fenced_stipend_relocation_rule():
+    # Home region (Noida / Delhi / Gurgaon): any paid amount passes
+    delhi_job = job("Backend Intern", location="Noida, India", workplace_type="onsite", compensation="₹10,000 / month")
+    assert evaluate(delhi_job, now=NOW).score is not None
+
+    # Home region unpaid rejected
+    delhi_unpaid = job("Backend Intern", location="Gurugram, India", workplace_type="onsite", compensation="Unpaid")
+    assert evaluate(delhi_unpaid, now=NOW).score is None
+
+    # Outside home region (Bengaluru / Pune): < 20k or unspecified is rejected
+    blr_low_pay = job("Backend Intern", location="Bengaluru, India", workplace_type="onsite", compensation="₹15,000 / month")
+    assert evaluate(blr_low_pay, now=NOW).score is None
+
+    blr_no_pay_info = job("Backend Intern", location="Bengaluru, India", workplace_type="onsite", compensation=None)
+    assert evaluate(blr_no_pay_info, now=NOW).score is None
+
+    # Outside home region: >= 20k passes
+    blr_good_pay = job("Backend Intern", location="Bengaluru, India", workplace_type="onsite", compensation="₹25,000 / month")
+    assert evaluate(blr_good_pay, now=NOW).score is not None
+    assert evaluate(blr_good_pay, now=NOW).score >= 70
+
+
+def test_remote_restricted_rejection():
+    # Global remote accepted
+    remote_global = job("AI Engineer", location="Remote", workplace_type="remote", description="Work from anywhere on GenAI")
+    assert evaluate(remote_global, now=NOW).score is not None
+
+    # US Only remote rejected
+    remote_us_only = job("AI Engineer", location="Remote", workplace_type="remote", description="This role is open to US Only candidates")
+    assert evaluate(remote_us_only, now=NOW).score is None
+
+    # Timezone restricted to Americas rejected
+    remote_tz = job("Backend Engineer", location="Remote", workplace_type="remote", description="Timezone restricted to Americas")
+    assert evaluate(remote_tz, now=NOW).score is None
+
+
+def test_international_onsite_rejected():
+    sf_job = job("Software Engineer Intern", location="San Francisco, CA", workplace_type="onsite", compensation="$40/hr")
+    assert evaluate(sf_job, now=NOW).score is None
+
+    london_job = job("Backend Engineer", location="London, UK", workplace_type="onsite")
+    assert evaluate(london_job, now=NOW).score is None
+
+

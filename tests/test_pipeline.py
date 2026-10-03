@@ -5,8 +5,8 @@ from models import Job
 from state import State, load_state, save_state
 
 
-def _job(number: int, title: str = "Backend Engineer Intern") -> Job:
-    return Job(id=f"test:{number}", source="test", title=title, url=f"https://example.com/jobs/{number}")
+def _job(number: int, title: str = "Backend Engineer Intern", description: str = "Python and FastAPI backend role") -> Job:
+    return Job(id=f"test:{number}", source="test", title=title, description=description, url=f"https://example.com/jobs/{number}")
 
 
 def test_delivery_failure_preserves_completed_ids_and_retries_later(tmp_path, monkeypatch):

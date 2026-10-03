@@ -69,15 +69,25 @@ WELLFOUND_URLS = (
 )
 
 ENABLED_SOURCES = tuple(
-    name.strip() for name in (getenv("JOB_WATCHER_SOURCES") or "linkedin,internshala,wellfound").split(",")
+    name.strip() for name in (getenv("JOB_WATCHER_SOURCES") or "hackernews,web3,github_internships,ats_api,linkedin,internshala,wellfound").split(",")
     if name.strip()
 )
 
-ALERT_THRESHOLD = int(getenv("JOB_WATCHER_ALERT_THRESHOLD", "60"))
+ALERT_THRESHOLD = int(getenv("JOB_WATCHER_ALERT_THRESHOLD", "80"))
 MAX_ALERTS_PER_RUN = int(getenv("JOB_WATCHER_MAX_ALERTS", "10"))
 MAX_POSTING_AGE_DAYS = int(getenv("JOB_WATCHER_MAX_AGE_DAYS", "7"))
 LINKEDIN_RESULTS_PER_SEARCH = 20
 INTERNSHALA_MAX_CARDS_PER_URL = 50
 WELLFOUND_MAX_CARDS_PER_URL = 50
 HTTP_TIMEOUT = (5, 20)
+
+# Telegram forum supergroup topic thread IDs (optional)
+TELEGRAM_TOPIC_JOBS = getenv("TELEGRAM_TOPIC_JOBS")
+TELEGRAM_TOPIC_GIGS = getenv("TELEGRAM_TOPIC_GIGS")
+TELEGRAM_TOPIC_HACKS = getenv("TELEGRAM_TOPIC_HACKS")
+
+MAX_GIG_ALERTS_PER_RUN = int(getenv("JOB_WATCHER_MAX_GIG_ALERTS", "10"))
+MAX_HACK_ALERTS_PER_RUN = int(getenv("JOB_WATCHER_MAX_HACK_ALERTS", "10"))
+GIG_ALERT_THRESHOLD = int(getenv("JOB_WATCHER_GIG_ALERT_THRESHOLD", "80"))
+HACK_ALERT_THRESHOLD = int(getenv("JOB_WATCHER_HACK_ALERT_THRESHOLD", "80"))
 
